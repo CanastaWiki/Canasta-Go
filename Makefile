@@ -17,8 +17,25 @@ install: build
 
 clean:
 		@echo "Cleaning build artifacts..."
-		@rm -rf build/
+		@rm -rf build/ dist/
 		@echo "Clean complete."
+
+# Cross-compile the Go-to-Ansible bridge for the four selfupdate-supported
+# OS/arch combos. Output goes to dist/bridge/canasta-<os>-<arch>; those
+# files become release assets on this repo's v3.7.0 release and are
+# vendored into the Canasta-Ansible repo for re-use on every Canasta CLI
+# 4.x.x release. See https://github.com/CanastaWiki/Canasta-Ansible/blob/main/canasta-ansible-release-plan.md
+# for the full release plan.
+bridge:
+		@mkdir -p dist/bridge
+		@for platform in linux/amd64 linux/arm64 darwin/amd64 darwin/arm64; do \
+			os=$${platform%%/*}; arch=$${platform##*/}; \
+			echo "Building bridge for $$os/$$arch..."; \
+			GOOS=$$os GOARCH=$$arch go build -trimpath -ldflags="-s -w" \
+				-o dist/bridge/canasta-$$os-$$arch ./bridge; \
+		done
+		@echo "Bridge binaries built in dist/bridge/"
+		@ls -lh dist/bridge/
 
 prepare-lint:
 		@if ! hash golangci-lint 2>/dev/null; then printf "\e[1;36m>> Installing golangci-lint (this may take a while)...\e[0m\n"; go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest; fi
@@ -55,6 +72,7 @@ help:
 		@printf "\e[1mBuild\e[0m\n"
 		@printf "  \e[36mbuild\e[0m                    Build binary (outputs to build/ directory and creates symlink).\n"
 		@printf "  \e[36minstall\e[0m                  Build and install to /usr/local/bin/ (requires sudo).\n"
+		@printf "  \e[36mbridge\e[0m                   Cross-compile the Go-to-Ansible bridge for 4 OS/arch combos (outputs to dist/bridge/).\n"
 		@printf "  \e[36mclean\e[0m                    Remove build artifacts and symlink.\n"
 		@printf "\n"
 		@printf "\e[1mTest\e[0m\n"
@@ -67,4 +85,4 @@ help:
 		@printf "  \e[36mcoverage-report\e[0m          Merge unit and integration profiles and show combined coverage.\n"
 		@printf "\n"
 
-.PHONY: build install clean prepare-lint lint test-cover integration-cover coverage-report help
+.PHONY: build install clean bridge prepare-lint lint test-cover integration-cover coverage-report help
