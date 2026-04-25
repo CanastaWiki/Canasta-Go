@@ -53,12 +53,20 @@ jobs:
       uses: actions/setup-go@v5
       with:
         go-version: '1.25'
-    - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
+    - name: Build bridge for ${{ matrix.goos }}/${{ matrix.goarch }}
       env:
         GOOS: ${{ matrix.goos }}
         GOARCH: ${{ matrix.goarch }}
-        VERSION: ${{ needs.version.outputs.new_version }}
-      run: sh build.sh
+      run: |
+        # v3.7.0 is the end-of-life Canasta-CLI Go release. The repo's
+        # full Cobra build (build.sh, cmd/, internal/) is preserved as
+        # archived dead code — releases from this point ship only the
+        # minimal bridge program from ./bridge, which prints a notice
+        # directing users to install Canasta CLI 4.0.0+ via
+        # get.canasta.wiki. See bridge/main.go for full context.
+        mkdir -p build
+        go build -trimpath -ldflags="-s -w" \
+          -o build/canasta-${{ matrix.goos }}-${{ matrix.goarch }} ./bridge
     - name: Upload executable
       uses: actions/upload-artifact@v4
       with:
