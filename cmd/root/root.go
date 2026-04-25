@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
 	addCmd "github.com/CanastaWiki/Canasta-CLI/cmd/add"
 	backupCmd "github.com/CanastaWiki/Canasta-CLI/cmd/backup"
 	configCmd "github.com/CanastaWiki/Canasta-CLI/cmd/config"
@@ -28,6 +31,20 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const deprecationWarning = `WARNING: This is the final Canasta CLI 3.x (Go) release. Future versions
+ship as Canasta CLI 4.x (Python/Ansible). To migrate:
+    curl -fsSL https://get.canasta.wiki | bash
+See https://canasta.wiki/wiki/Help:Installation.
+(Set CANASTA_SUPPRESS_DEPRECATION_WARNING=1 to silence.)
+`
+
+func printDeprecationWarning() {
+	if os.Getenv("CANASTA_SUPPRESS_DEPRECATION_WARNING") != "" {
+		return
+	}
+	fmt.Fprint(os.Stderr, deprecationWarning)
+}
+
 var verbose bool
 
 var rootCmd = &cobra.Command{
@@ -40,6 +57,7 @@ wikis per instance.`,
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	PersistentPreRun: func(_ *cobra.Command, _ []string) {
+		printDeprecationWarning()
 		logging.SetVerbose(verbose)
 		logging.Print("Verbose logging enabled")
 	},

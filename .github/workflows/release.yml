@@ -88,3 +88,38 @@ jobs:
           ./build/canasta-linux-arm64
           ./build/canasta-darwin-amd64
           ./build/canasta-darwin-arm64
+
+    # After this repo is renamed to Canasta-Go and Canasta-Ansible
+    # takes over the Canasta-CLI repo name, mirror the same release
+    # artifacts to the new Canasta-CLI repo so legacy 3.x clients
+    # continue to find a working binary at the URL their selfupdate
+    # logic queries (api.github.com/repos/CanastaWiki/Canasta-CLI/
+    # releases/latest). Skipped automatically when the App isn't
+    # configured (pre-rename, dev forks) or when this workflow runs
+    # from CanastaWiki/Canasta-CLI itself (which would self-mirror).
+    - name: Mint cross-repo token
+      if: ${{ vars.RELEASE_BOT_APP_ID != '' && github.repository != 'CanastaWiki/Canasta-CLI' }}
+      id: app-token
+      uses: actions/create-github-app-token@v1
+      with:
+        app-id: ${{ vars.RELEASE_BOT_APP_ID }}
+        private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+        owner: CanastaWiki
+        repositories: Canasta-CLI
+
+    - name: Mirror release to CanastaWiki/Canasta-CLI
+      if: ${{ vars.RELEASE_BOT_APP_ID != '' && github.repository != 'CanastaWiki/Canasta-CLI' }}
+      uses: softprops/action-gh-release@v2
+      with:
+        repository: CanastaWiki/Canasta-CLI
+        token: ${{ steps.app-token.outputs.token }}
+        draft: false
+        tag_name: ${{ needs.version.outputs.new_version }}
+        fail_on_unmatched_files: true
+        generate_release_notes: true
+        append_body: true
+        files: |
+          ./build/canasta-linux-amd64
+          ./build/canasta-linux-arm64
+          ./build/canasta-darwin-amd64
+          ./build/canasta-darwin-arm64
